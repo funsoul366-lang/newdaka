@@ -1325,4 +1325,36 @@ def register_handlers(app, all_apps=None):
             "`/current` - Show all currently running tasks\n"
             "`/help` - Show this help\n\n"
             f"**Data:** `{DATA_FILE}` | **Active accounts:** {len(SESSIONS)}\n"
-            f"**Current delay:** `{DELAY_RANGE[0
+            f"**Current delay:** `{DELAY_RANGE[0]}-{DELAY_RANGE[1]}` seconds\n"
+            f"**Scanning period:** `{SCANNING_DAYS}` days"
+        )
+
+async def main():
+    load_data()
+    if not SESSIONS:
+        print("❌ No sessions found! Add sessions using /addacc in DM or edit devour.json")
+        print("Creating sample devour.json structure...")
+        save_data()
+        return
+    apps = []
+    for sess in SESSIONS:
+        app = Client(
+            sess["name"],
+            api_id=API_ID,
+            api_hash=API_HASH,
+            session_string=sess["session_string"],
+        )
+        _attach_attack_method(app)
+        register_handlers(app, apps)
+        apps.append(app)
+    print(f"🤖 Running {len(apps)} session(s) with DM-based control.")
+    print(f"💾 Data file: {DATA_FILE}")
+    print(f"📊 Current file: {CURRENT_FILE}")
+    print(f"👤 Sudo users: {SUDO_USERS}")
+    print(f"⏱️  Delay range: {DELAY_RANGE[0]}-{DELAY_RANGE[1]} seconds")
+    print(f"📅 Scanning period: {SCANNING_DAYS} days")
+    await asyncio.gather(*[a.start() for a in apps])
+    await asyncio.get_event_loop().create_future()
+
+if __name__ == "__main__":
+    asyncio.run(main())
