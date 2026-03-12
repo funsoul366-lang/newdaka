@@ -1349,3 +1349,62 @@ def register_handlers(app, all_apps=None):
                 await asyncio.sleep(2)
             except Exception:
                 failed += 1
+        await message.reply(
+            f"✅ `/daily` claimed in @im_bakabot.\nAccounts: {len(SESSIONS)}, Failed: {failed}"
+        )
+
+    @app.on_message(filters.command("help") & sudo_filter & filters.private)
+    async def help_msg(client, message):
+        await message.reply(
+            "**🤖 Devour UserBot Help:**\n\n"
+            "**DM Commands:**\n"
+            "`/devour` - Open main control menu\n"
+            "`/settext1 <text>` - Set Text1\n"
+            "`/settext2 <text>` - Set Text2\n"
+            "`/joinchat <link>` - Join group/channel\n"
+            "`/addacc <name> <session>` - Add new account (hot add)\n"
+            "`/delacc <name>` - Remove account (hot remove)\n"
+            "`/delall` - Delete all my messages from target group\n"
+            "`/claim` - Call `/daily` from all accounts in @im_bakabot\n"
+            "`/cancel <task_id>` - Cancel a specific task\n"
+            "`/pause <task_id>` - Pause a running task\n"
+            "`/resume <task_id>` - Resume a paused task\n"
+            "`/delay <min> <max>` - Set delay range (e.g. `/delay 4 6`)\n"
+            "`/scandays <days>` - Set scanning period (e.g. `/scandays 30`)\n"
+            "`/autodel on/off` - Enable/disable auto-delete (e.g. `/autodel on`)\n"
+            "`/current` - Show all currently running tasks\n"
+            "`/help` - Show this help\n\n"
+            f"**Data:** `{DATA_FILE}` | **Active accounts:** {len(SESSIONS)}\n"
+            f"**Current delay:** `{DELAY_RANGE[0]}-{DELAY_RANGE[1]}` seconds\n"
+            f"**Scanning period:** `{SCANNING_DAYS}` days"
+        )
+
+async def main():
+    load_data()
+    if not SESSIONS:
+        print("❌ No sessions found! Add sessions using /addacc in DM or edit devour.json")
+        print("Creating sample devour.json structure...")
+        save_data()
+        return
+    apps = []
+    for sess in SESSIONS:
+        app = Client(
+            sess["name"],
+            api_id=API_ID,
+            api_hash=API_HASH,
+            session_string=sess["session_string"],
+        )
+        _attach_attack_method(app)
+        register_handlers(app, apps)
+        apps.append(app)
+    print(f"🤖 Running {len(apps)} session(s) with DM-based control.")
+    print(f"💾 Data file: {DATA_FILE}")
+    print(f"📊 Current file: {CURRENT_FILE}")
+    print(f"👤 Sudo users: {SUDO_USERS}")
+    print(f"⏱️  Delay range: {DELAY_RANGE[0]}-{DELAY_RANGE[1]} seconds")
+    print(f"📅 Scanning period: {SCANNING_DAYS} days")
+    await asyncio.gather(*[a.start() for a in apps])
+    await asyncio.get_event_loop().create_future()
+
+if __name__ == "__main__":
+    asyncio.run(main())
